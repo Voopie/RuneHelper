@@ -7,10 +7,10 @@ C_ChatInfo.RegisterAddonMessagePrefix(ADDON_COMM_PREFIX);
 local PLAYER_NAME_WITH_REALM;
 
 local data = {
-    [1] = {1323038, '{rt1}', 'YELLOW', 348447},
-    [2] = {1323039, '{rt2}', 'ORANGE', 348437},
-    [3] = {1323037, '{rt3}', 'PURPLE', 348451},
-    [4] = {1323035, '{rt6}', 'BLUE',   348450},
+    [1] = { 1323038, '{rt1}', 'YELLOW', 348447 },
+    [2] = { 1323039, '{rt2}', 'ORANGE', 348437 },
+    [3] = { 1323037, '{rt3}', 'PURPLE', 348451 },
+    [4] = { 1323035, '{rt6}', 'BLUE',   348450 },
 };
 
 local auras = {
@@ -36,7 +36,7 @@ local blocks = {};
 local SOLUTION_FORMAT = '%s %s        %s %s';
 
 local TAZAVESH_INSTANCE_ID = 2441;
-local HYLBRANDE_ENCOUNTER_ID = 1111;
+local HYLBRANDE_ENCOUNTER_ID = 2426;
 local SHOW_SPELL_ID = 346427;
 
 local function GetPartyChatType()
@@ -477,6 +477,7 @@ function MainFrame:CHAT_MSG_ADDON(prefix, message, _, sender)
     end
 
     local command, arg1, arg2, arg3, arg4 = strsplit('|', message);
+
     if command == 'SEND' then
         RH:ReceiveActiveButtons(tonumber(arg1), tonumber(arg2), tonumber(arg3), tonumber(arg4));
     elseif command == 'RESET' then

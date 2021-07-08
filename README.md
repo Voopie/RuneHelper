@@ -1,6 +1,6 @@
 ## Rune Helper (Tazavesh, the Veiled Market)
 
-[CurseForge](https://www.curseforge.com/wow/addons/rune-helper-tazavesh-the-veiled-market) | [Wago Addons](https://addons.wago.io/addons/rune-helper-tazavesh-the-veiled-market)
+[CurseForge](https://www.curseforge.com/wow/addons/rune-helper-tazavesh-the-veiled-market) | [Wago Addons](https://addons.wago.io/addons/runehelper)
 
 ---
 

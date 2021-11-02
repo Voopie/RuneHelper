@@ -38,6 +38,7 @@ local SOLUTION_FORMAT = '%s %s        %s %s';
 local TAZAVESH_INSTANCE_ID = 2441;
 local HYLBRANDE_ENCOUNTER_ID = 2426;
 local SHOW_SPELL_ID = 346427;
+local HIDE_SPELL_ID = 347097;
 
 local function GetPartyChatType()
     if IsInRaid() then
@@ -385,7 +386,6 @@ function RH:SendShow()
     ChatThrottleLib:SendAddonMessage(ADDON_COMM_MODE, ADDON_COMM_PREFIX, 'SHOW', partyChatType);
 end
 
-
 RH.ResetButton = CreateFrame('Button', nil, MainFrame, 'SharedButtonSmallTemplate');
 RH.ResetButton:SetPoint('BOTTOMRIGHT', MainFrame, 'BOTTOMRIGHT', 0, 0);
 RH.ResetButton:SetText('Reset');
@@ -422,21 +422,42 @@ local function UpdateState()
     end
 
     if inTazavesh then
-        MainFrame:RegisterUnitEvent('UNIT_AURA', 'player');
-        MainFrame:RegisterEvent('UNIT_SPELLCAST_SENT');
+        MainFrame:RegisterEvent('CHAT_MSG_ADDON');
+        MainFrame:RegisterUnitEvent('UNIT_AURA', 'player', 'vehicle');
+        MainFrame:RegisterUnitEvent('UNIT_ENTERED_VEHICLE', 'player', 'vehicle');
+        MainFrame:RegisterUnitEvent('UNIT_SPELLCAST_START', 'player', 'vehicle');
         MainFrame:RegisterEvent('ENCOUNTER_START');
         MainFrame:RegisterEvent('ENCOUNTER_END');
     else
+        MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
         MainFrame:UnregisterEvent('UNIT_AURA');
-        MainFrame:UnregisterEvent('UNIT_SPELLCAST_SENT');
+        MainFrame:UnregisterEvent('UNIT_ENTERED_VEHICLE');
+        MainFrame:UnregisterEvent('UNIT_SPELLCAST_START');
         MainFrame:UnregisterEvent('ENCOUNTER_START');
         MainFrame:UnregisterEvent('ENCOUNTER_END');
     end
 end
 
-local function UpdateBossState(encounterId, inFight, killed)
+local function UpdateBossState(encounterId, inFight, isKilled)
     if encounterId ~= HYLBRANDE_ENCOUNTER_ID then
         return;
+    end
+
+    if inFight then
+        MainFrame:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED');
+    else
+        MainFrame:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED');
+    end
+
+    if isKilled then
+        MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
+        MainFrame:UnregisterEvent('UNIT_AURA');
+        MainFrame:UnregisterEvent('UNIT_ENTERED_VEHICLE');
+        MainFrame:UnregisterEvent('UNIT_SPELLCAST_START');
+        MainFrame:UnregisterEvent('ENCOUNTER_START');
+        MainFrame:UnregisterEvent('ENCOUNTER_END');
+
+        MainFrame:SetShown(false);
     end
 
     ResetAll();
@@ -465,6 +486,22 @@ end
 
 function MainFrame:ENCOUNTER_END(encounterId, _, _, _, success)
     UpdateBossState(encounterId, false, success);
+end
+
+function MainFrame:UNIT_ENTERED_VEHICLE(unit)
+    if unit == 'player' or unit == 'vehicle' then
+        MainFrame:SetShown(true);
+        RH:SendShow();
+    end
+end
+
+function MainFrame:COMBAT_LOG_EVENT_UNFILTERED()
+    local _, subEvent, _, _, _, _, _, _, _, _, _, spellId = CombatLogGetCurrentEventInfo();
+
+    if subEvent == 'SPELL_AURA_REMOVED' and spellId == HIDE_SPELL_ID then
+        ResetAll();
+        MainFrame:SetShown(false);
+    end
 end
 
 function MainFrame:CHAT_MSG_ADDON(prefix, message, _, sender)
@@ -505,6 +542,24 @@ local function FindAura(unit)
     return false;
 end
 
+local function FindShowAura(unit)
+    local spellId;
+
+    for i = 1, BUFF_MAX_DISPLAY do
+        spellId = select(10, UnitAura(unit, i, 'HELPFUL'));
+
+        if not spellId then
+            return false;
+        end
+
+        if spellId == SHOW_SPELL_ID then
+            return true;
+        end
+    end
+
+    return false;
+end
+
 function MainFrame:UNIT_AURA()
     local index = FindAura('player');
 
@@ -517,11 +572,15 @@ function MainFrame:UNIT_AURA()
             blocks[i].bigBoy.glowFrame.AnimGroup:Stop();
         end
     end
+
+    if FindShowAura('player') then
+        MainFrame:SetShown(true);
+        RH:SendShow();
+    end
 end
 
-
-function MainFrame:UNIT_SPELLCAST_SENT(unit, _, _, spellId)
-    if unit ~= 'player' or spellId ~= SHOW_SPELL_ID then
+function MainFrame:UNIT_SPELLCAST_START(_, _, spellId)
+    if spellId ~= SHOW_SPELL_ID then
         return;
     end
 
@@ -538,7 +597,6 @@ function MainFrame:ADDON_LOADED(addonName)
 
     self:RegisterEvent('PLAYER_LOGIN');
     self:RegisterEvent('PLAYER_ENTERING_WORLD');
-    self:RegisterEvent('CHAT_MSG_ADDON');
 
     for i = 1, MAX_BLOCKS do
         local block = CreateBlock(i);

@@ -37,7 +37,7 @@ local SOLUTION_FORMAT = '%s %s        %s %s';
 
 local TAZAVESH_INSTANCE_ID = 2441;
 local HYLBRANDE_ENCOUNTER_ID = 2426;
-local SHOW_SPELL_ID = 346427;
+local SHOW_AURA_ID  = 346427;
 local HIDE_SPELL_ID = 347097;
 
 local function GetPartyChatType()
@@ -422,19 +422,13 @@ local function UpdateState()
     end
 
     if inTazavesh then
-        MainFrame:RegisterEvent('CHAT_MSG_ADDON');
-        MainFrame:RegisterUnitEvent('UNIT_AURA', 'player', 'vehicle');
-        MainFrame:RegisterUnitEvent('UNIT_ENTERED_VEHICLE', 'player', 'vehicle');
-        MainFrame:RegisterUnitEvent('UNIT_SPELLCAST_START', 'player', 'vehicle');
         MainFrame:RegisterEvent('ENCOUNTER_START');
         MainFrame:RegisterEvent('ENCOUNTER_END');
     else
-        MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
-        MainFrame:UnregisterEvent('UNIT_AURA');
-        MainFrame:UnregisterEvent('UNIT_ENTERED_VEHICLE');
-        MainFrame:UnregisterEvent('UNIT_SPELLCAST_START');
         MainFrame:UnregisterEvent('ENCOUNTER_START');
         MainFrame:UnregisterEvent('ENCOUNTER_END');
+        MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
+        MainFrame:UnregisterEvent('UNIT_AURA');
     end
 end
 
@@ -444,16 +438,18 @@ local function UpdateBossState(encounterId, inFight, isKilled)
     end
 
     if inFight then
+        MainFrame:RegisterEvent('CHAT_MSG_ADDON');
         MainFrame:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED');
+        MainFrame:RegisterUnitEvent('UNIT_AURA', 'player', 'vehicle');
     else
+        MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
         MainFrame:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED');
+        MainFrame:UnregisterEvent('UNIT_AURA');
     end
 
-    if isKilled then
+    if isKilled == 1 then
         MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
         MainFrame:UnregisterEvent('UNIT_AURA');
-        MainFrame:UnregisterEvent('UNIT_ENTERED_VEHICLE');
-        MainFrame:UnregisterEvent('UNIT_SPELLCAST_START');
         MainFrame:UnregisterEvent('ENCOUNTER_START');
         MainFrame:UnregisterEvent('ENCOUNTER_END');
 
@@ -481,18 +477,11 @@ function MainFrame:PLAYER_ENTERING_WORLD()
 end
 
 function MainFrame:ENCOUNTER_START(encounterId)
-    UpdateBossState(encounterId, true, false);
+    UpdateBossState(encounterId, true, 0);
 end
 
 function MainFrame:ENCOUNTER_END(encounterId, _, _, _, success)
     UpdateBossState(encounterId, false, success);
-end
-
-function MainFrame:UNIT_ENTERED_VEHICLE(unit)
-    if unit == 'player' or unit == 'vehicle' then
-        MainFrame:SetShown(true);
-        RH:SendShow();
-    end
 end
 
 function MainFrame:COMBAT_LOG_EVENT_UNFILTERED()
@@ -524,7 +513,7 @@ function MainFrame:CHAT_MSG_ADDON(prefix, message, _, sender)
     end
 end
 
-local function FindAura(unit)
+local function FindRuneAura(unit)
     local spellId;
 
     for i = 1, DEBUFF_MAX_DISPLAY do
@@ -546,13 +535,13 @@ local function FindShowAura(unit)
     local spellId;
 
     for i = 1, BUFF_MAX_DISPLAY do
-        spellId = select(10, UnitAura(unit, i, 'HELPFUL'));
+        spellId = select(10, UnitAura(unit, i, 'HARMFUL'));
 
         if not spellId then
             return false;
         end
 
-        if spellId == SHOW_SPELL_ID then
+        if spellId == SHOW_AURA_ID then
             return true;
         end
     end
@@ -561,7 +550,7 @@ local function FindShowAura(unit)
 end
 
 function MainFrame:UNIT_AURA()
-    local index = FindAura('player');
+    local index = FindRuneAura('player');
 
     for i = 1, MAX_BLOCKS do
         if index and blocks[i].bigBoy.index == index then
@@ -577,15 +566,6 @@ function MainFrame:UNIT_AURA()
         MainFrame:SetShown(true);
         RH:SendShow();
     end
-end
-
-function MainFrame:UNIT_SPELLCAST_START(_, _, spellId)
-    if spellId ~= SHOW_SPELL_ID then
-        return;
-    end
-
-    MainFrame:SetShown(true);
-    RH:SendShow();
 end
 
 function MainFrame:ADDON_LOADED(addonName)

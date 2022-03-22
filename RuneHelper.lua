@@ -513,44 +513,22 @@ function MainFrame:CHAT_MSG_ADDON(prefix, message, _, sender)
     end
 end
 
-local function FindRuneAura(unit)
-    local spellId;
-
-    for i = 1, DEBUFF_MAX_DISPLAY do
-        spellId = select(10, UnitAura(unit, i, 'HARMFUL'));
-
-        if not spellId then
-            return false;
-        end
-
-        if auras[spellId] then
-            return auras[spellId];
+local function FindRuneAura()
+    for spellId, index in pairs(auras) do
+        if GetPlayerAuraBySpellID(spellId) then
+            return index;
         end
     end
-
-    return false;
 end
 
-local function FindShowAura(unit)
-    local spellId;
-
-    for i = 1, BUFF_MAX_DISPLAY do
-        spellId = select(10, UnitAura(unit, i, 'HARMFUL'));
-
-        if not spellId then
-            return false;
-        end
-
-        if spellId == SHOW_AURA_ID then
-            return true;
-        end
+local function FindShowAura()
+    if GetPlayerAuraBySpellID(SHOW_AURA_ID) then
+        return true;
     end
-
-    return false;
 end
 
 function MainFrame:UNIT_AURA()
-    local index = FindRuneAura('player');
+    local index = FindRuneAura();
 
     for i = 1, MAX_BLOCKS do
         if index and blocks[i].bigBoy.index == index then
@@ -562,7 +540,7 @@ function MainFrame:UNIT_AURA()
         end
     end
 
-    if FindShowAura('player') then
+    if FindShowAura() then
         MainFrame:SetShown(true);
         RH:SendShow();
     end

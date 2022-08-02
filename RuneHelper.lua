@@ -35,8 +35,9 @@ local blocks = {};
 
 local SOLUTION_FORMAT = '%s %s        %s %s';
 
-local TAZAVESH_INSTANCE_ID = 2441;
+local TAZAVESH_INSTANCE_ID   = 2441;
 local HYLBRANDE_ENCOUNTER_ID = 2426;
+
 local SHOW_AURA_ID  = 346427;
 local HIDE_SPELL_ID = 347097;
 
@@ -447,7 +448,7 @@ local function UpdateBossState(encounterId, inFight, isKilled)
         MainFrame:UnregisterEvent('UNIT_AURA');
     end
 
-    if isKilled == 1 then
+    if isKilled then
         MainFrame:UnregisterEvent('CHAT_MSG_ADDON');
         MainFrame:UnregisterEvent('UNIT_AURA');
         MainFrame:UnregisterEvent('ENCOUNTER_START');
@@ -477,11 +478,11 @@ function MainFrame:PLAYER_ENTERING_WORLD()
 end
 
 function MainFrame:ENCOUNTER_START(encounterId)
-    UpdateBossState(encounterId, true, 0);
+    UpdateBossState(encounterId, true, false);
 end
 
 function MainFrame:ENCOUNTER_END(encounterId, _, _, _, success)
-    UpdateBossState(encounterId, false, success);
+    UpdateBossState(encounterId, false, success == 1);
 end
 
 function MainFrame:COMBAT_LOG_EVENT_UNFILTERED()
